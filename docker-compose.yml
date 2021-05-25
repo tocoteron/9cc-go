@@ -1,0 +1,7 @@
+version: "3.9"
+services:
+  target:
+    build: .
+    volumes:
+      - .:/9cc
+    working_dir: /9cc
