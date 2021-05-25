@@ -115,7 +115,7 @@ func strToInt(s string) (int, string) {
 		num = num*10 + int(s[i]-'0')
 	}
 
-	return num, ""
+	return num, s[len(s):]
 }
 
 func main() {
