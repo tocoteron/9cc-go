@@ -1,6 +1,6 @@
 CFLAGS=-std=c11 -g -static
 
-9cc:
+9cc: cmd/compiler/main.go
 	go build -o 9cc cmd/compiler/main.go
 
 test: 9cc
