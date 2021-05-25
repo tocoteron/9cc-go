@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"strings"
 )
 
 type TokenKind int
@@ -21,12 +22,17 @@ type Token struct {
 }
 
 var token *Token
+var userInput string
 
-func error(format string, a ...interface{}) {
-	err := fmt.Errorf(format+" \n", a...)
-	if err != nil {
-		panic(err)
-	}
+func errorAt(loc string, format string, a ...interface{}) {
+	fmt.Println(userInput)
+
+	pos := len(userInput) - len(loc)
+
+	fmt.Fprintf(os.Stderr, strings.Repeat(" ", pos))
+	fmt.Fprintf(os.Stderr, "^ ")
+	fmt.Fprintf(os.Stderr, format+"\n", a...)
+
 	os.Exit(1)
 }
 
@@ -42,7 +48,7 @@ func consume(op byte) bool {
 
 func expect(op byte) {
 	if token.kind != TK_RESERVED || token.str[0] != op {
-		error("It is not '%c'", op)
+		errorAt(token.str, "It is not '%c'", op)
 	}
 
 	token = token.next
@@ -50,7 +56,7 @@ func expect(op byte) {
 
 func expectNumber() int {
 	if token.kind != TK_NUM {
-		error("It is not a number")
+		errorAt(token.str, "It is not a number")
 	}
 
 	val := token.val
@@ -97,7 +103,7 @@ func tokenize(s string) *Token {
 			continue
 		}
 
-		error("Can't tokenize")
+		errorAt(s, "Can't tokenize")
 	}
 
 	newToken(cur, TK_EOF, s)
@@ -126,7 +132,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	token = tokenize(args[1])
+	userInput = args[1]
+	token = tokenize(userInput)
 
 	fmt.Printf(".intel_syntax noprefix\n")
 	fmt.Printf(".globl main\n")
