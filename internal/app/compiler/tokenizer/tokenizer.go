@@ -5,9 +5,9 @@ import "github.com/tocoteron/9cc-go/internal/app/compiler/io"
 type TokenKind int
 
 const (
-	TK_RESERVED TokenKind = iota
-	TK_NUM
-	TK_EOF
+	TOKEN_RESERVED TokenKind = iota
+	TOKEN_NUM
+	TOKEN_EOF
 )
 
 type Token struct {
@@ -20,7 +20,7 @@ type Token struct {
 var CurrentToken *Token
 
 func Consume(op byte) bool {
-	if CurrentToken.kind != TK_RESERVED || CurrentToken.str[0] != op {
+	if CurrentToken.kind != TOKEN_RESERVED || CurrentToken.str[0] != op {
 		return false
 	}
 
@@ -30,7 +30,7 @@ func Consume(op byte) bool {
 }
 
 func Expect(op byte) {
-	if CurrentToken.kind != TK_RESERVED || CurrentToken.str[0] != op {
+	if CurrentToken.kind != TOKEN_RESERVED || CurrentToken.str[0] != op {
 		io.ErrorAt(CurrentToken.str, "It is not '%c'", op)
 	}
 
@@ -38,7 +38,7 @@ func Expect(op byte) {
 }
 
 func ExpectNumber() int {
-	if CurrentToken.kind != TK_NUM {
+	if CurrentToken.kind != TOKEN_NUM {
 		io.ErrorAt(CurrentToken.str, "It is not a number")
 	}
 
@@ -50,7 +50,7 @@ func ExpectNumber() int {
 }
 
 func AtEOF() bool {
-	return CurrentToken.kind == TK_EOF
+	return CurrentToken.kind == TOKEN_EOF
 }
 
 func NewToken(cur *Token, kind TokenKind, str string) *Token {
@@ -75,13 +75,13 @@ func Tokenize(s string) *Token {
 		}
 
 		if s[0] == '+' || s[0] == '-' {
-			cur = NewToken(cur, TK_RESERVED, s)
+			cur = NewToken(cur, TOKEN_RESERVED, s)
 			s = s[1:]
 			continue
 		}
 
 		if s[0] >= '0' && s[0] <= '9' {
-			cur = NewToken(cur, TK_NUM, s)
+			cur = NewToken(cur, TOKEN_NUM, s)
 			cur.val, s = strToInt(s)
 			continue
 		}
@@ -89,7 +89,7 @@ func Tokenize(s string) *Token {
 		io.ErrorAt(s, "Can't tokenize")
 	}
 
-	NewToken(cur, TK_EOF, s)
+	NewToken(cur, TOKEN_EOF, s)
 
 	return head.next
 }
