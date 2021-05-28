@@ -10,6 +10,7 @@ type TokenKind int
 
 const (
 	TOKEN_RESERVED TokenKind = iota
+	TOKEN_IDENT
 	TOKEN_NUM
 	TOKEN_EOF
 )
@@ -18,14 +19,14 @@ type Token struct {
 	kind TokenKind
 	next *Token
 	val  int
-	str  string
+	Str  string
 	len  int
 }
 
 var CurrentToken *Token
 
 func Consume(op string) bool {
-	if CurrentToken.kind != TOKEN_RESERVED || CurrentToken.str[:CurrentToken.len] != op {
+	if CurrentToken.kind != TOKEN_RESERVED || CurrentToken.Str[:CurrentToken.len] != op {
 		return false
 	}
 
@@ -34,9 +35,21 @@ func Consume(op string) bool {
 	return true
 }
 
+func ConsumeIdent() *Token {
+	if CurrentToken.kind != TOKEN_IDENT {
+		return nil
+	}
+
+	token := CurrentToken
+
+	CurrentToken = CurrentToken.next
+
+	return token
+}
+
 func Expect(op string) {
-	if CurrentToken.kind != TOKEN_RESERVED || CurrentToken.str[:CurrentToken.len] != op {
-		io.ErrorAt(CurrentToken.str, "It is not '%s'", op)
+	if CurrentToken.kind != TOKEN_RESERVED || CurrentToken.Str[:CurrentToken.len] != op {
+		io.ErrorAt(CurrentToken.Str, "It is not '%s'", op)
 	}
 
 	CurrentToken = CurrentToken.next
@@ -44,7 +57,7 @@ func Expect(op string) {
 
 func ExpectNumber() int {
 	if CurrentToken.kind != TOKEN_NUM {
-		io.ErrorAt(CurrentToken.str, "It is not a number")
+		io.ErrorAt(CurrentToken.Str, "It is not a number")
 	}
 
 	val := CurrentToken.val
@@ -54,14 +67,14 @@ func ExpectNumber() int {
 	return val
 }
 
-func atEOF() bool {
+func AtEOF() bool {
 	return CurrentToken.kind == TOKEN_EOF
 }
 
 func newToken(cur *Token, kind TokenKind, str string, len int) *Token {
 	token := &Token{}
 	token.kind = kind
-	token.str = str
+	token.Str = str
 	token.len = len
 	cur.next = token
 
@@ -87,8 +100,14 @@ func Tokenize(s string) *Token {
 			continue
 		}
 
-		if strings.IndexByte("+-*/()<>", s[0]) != -1 {
+		if strings.IndexByte("+-*/()<>=;", s[0]) != -1 {
 			cur = newToken(cur, TOKEN_RESERVED, s, 1)
+			s = s[1:]
+			continue
+		}
+
+		if s[0] >= 'a' && s[0] <= 'z' {
+			cur = newToken(cur, TOKEN_IDENT, s, 0)
 			s = s[1:]
 			continue
 		}

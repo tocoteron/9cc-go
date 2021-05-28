@@ -19,14 +19,21 @@ func main() {
 
 	io.UserInput = args[1]
 	tokenizer.CurrentToken = tokenizer.Tokenize(io.UserInput)
-	node := parser.Parse()
+	code := parser.Parse()
 
 	fmt.Printf(".intel_syntax noprefix\n")
 	fmt.Printf(".globl main\n")
 	fmt.Printf("main:\n")
 
-	parser.Generate(node)
+	// Prologue
+	fmt.Printf("  push rbp\n")
+	fmt.Printf("  mov rbp, rsp\n")
+	fmt.Printf("  sub rsp, %d\n", 26*8)
 
-	fmt.Printf("  pop rax\n")
+	parser.Generate(code)
+
+	// Epilogue
+	fmt.Printf("  mov rsp, rbp\n")
+	fmt.Printf("  pop rbp\n")
 	fmt.Printf("  ret\n")
 }

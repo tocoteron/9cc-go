@@ -8,6 +8,11 @@ import (
 
 var UserInput string
 
+func Error(format string, a ...interface{}) {
+	fmt.Fprintf(os.Stderr, format, a...)
+	os.Exit(1)
+}
+
 func ErrorAt(loc string, format string, a ...interface{}) {
 	fmt.Fprintf(os.Stderr, "%s\n", UserInput)
 

@@ -3,28 +3,32 @@ package parser
 import (
 	"fmt"
 
+	"github.com/tocoteron/9cc-go/internal/app/compiler/io"
 	"github.com/tocoteron/9cc-go/internal/app/compiler/tokenizer"
 )
 
 type NodeKind int
 
 const (
-	NODE_ADD NodeKind = iota
-	NODE_SUB
-	NODE_MUL
-	NODE_DIV
-	NODE_EQ // ==
-	NODE_NE // !=
-	NODE_LT // <
-	NODE_LE // <=
-	NODE_NUM
+	NODE_ADD    NodeKind = iota // +
+	NODE_SUB                    // -
+	NODE_MUL                    // *
+	NODE_DIV                    // /
+	NODE_ASSIGN                 // =
+	NODE_EQ                     // ==
+	NODE_NE                     // !=
+	NODE_LT                     // <
+	NODE_LE                     // <=
+	NODE_LVAR                   // Local variable
+	NODE_NUM                    // Integer
 )
 
 type Node struct {
-	kind NodeKind
-	lhs  *Node
-	rhs  *Node
-	val  int
+	kind   NodeKind
+	lhs    *Node
+	rhs    *Node
+	val    int
+	offset int
 }
 
 func newNode(kind NodeKind, lhs *Node, rhs *Node) *Node {
@@ -44,12 +48,48 @@ func newNodeNum(val int) *Node {
 	return node
 }
 
-func Parse() *Node {
-	return expression()
+func newNodeLVar(offset int) *Node {
+	node := &Node{}
+	node.kind = NODE_LVAR
+	node.offset = offset
+
+	return node
+}
+
+func Parse() []*Node {
+	return program()
+}
+
+func program() []*Node {
+	var code []*Node
+
+	for !tokenizer.AtEOF() {
+		code = append(code, statement())
+	}
+
+	return code
+}
+
+func statement() *Node {
+	node := expression()
+
+	tokenizer.Expect(";")
+
+	return node
 }
 
 func expression() *Node {
-	return equality()
+	return assign()
+}
+
+func assign() *Node {
+	node := equality()
+
+	if tokenizer.Consume("=") {
+		node = newNode(NODE_ASSIGN, node, assign())
+	}
+
+	return node
 }
 
 func equality() *Node {
@@ -131,17 +171,46 @@ func primary() *Node {
 		return node
 	}
 
+	token := tokenizer.ConsumeIdent()
+	if token != nil {
+		node := newNodeLVar(int(token.Str[0]-'a'+1) * 8)
+		return node
+	}
+
 	return newNodeNum(tokenizer.ExpectNumber())
 }
 
-func Generate(node *Node) {
-	if node.kind == NODE_NUM {
+func Generate(code []*Node) {
+	for _, statement := range code {
+		generate(statement)
+		fmt.Printf("  pop rax\n")
+	}
+}
+
+func generate(node *Node) {
+	switch node.kind {
+	case NODE_NUM:
 		fmt.Printf("  push %d\n", node.val)
+		return
+	case NODE_LVAR:
+		generateLeftVal(node)
+		fmt.Printf("  pop rax\n")
+		fmt.Printf("  mov rax, [rax]\n")
+		fmt.Printf("  push rax\n")
+		return
+	case NODE_ASSIGN:
+		generateLeftVal(node.lhs)
+		generate(node.rhs)
+
+		fmt.Printf("  pop rdi\n")
+		fmt.Printf("  pop rax\n")
+		fmt.Printf("  mov [rax], rdi\n")
+		fmt.Printf("  push rdi\n")
 		return
 	}
 
-	Generate(node.lhs)
-	Generate(node.rhs)
+	generate(node.lhs)
+	generate(node.rhs)
 
 	fmt.Printf("  pop rdi\n")
 	fmt.Printf("  pop rax\n")
@@ -182,5 +251,15 @@ func Generate(node *Node) {
 		break
 	}
 
+	fmt.Printf("  push rax\n")
+}
+
+func generateLeftVal(node *Node) {
+	if node.kind != NODE_LVAR {
+		io.Error("Invalid assignment, left value is not variable")
+	}
+
+	fmt.Printf("  mov rax, rbp\n")
+	fmt.Printf("  sub rax, %d\n", node.offset)
 	fmt.Printf("  push rax\n")
 }
