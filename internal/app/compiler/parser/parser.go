@@ -59,17 +59,29 @@ func expression() *Node {
 }
 
 func mul() *Node {
-	node := primary()
+	node := unary()
 
 	for {
 		if tokenizer.Consume('*') {
-			node = newNode(NODE_MUL, node, primary())
+			node = newNode(NODE_MUL, node, unary())
 		} else if tokenizer.Consume('/') {
-			node = newNode(NODE_DIV, node, primary())
+			node = newNode(NODE_DIV, node, unary())
 		} else {
 			return node
 		}
 	}
+}
+
+func unary() *Node {
+	if tokenizer.Consume('+') {
+		return primary()
+	}
+
+	if tokenizer.Consume('-') {
+		return newNode(NODE_SUB, newNodeNum(0), primary())
+	}
+
+	return primary()
 }
 
 func primary() *Node {
