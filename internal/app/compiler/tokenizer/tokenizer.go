@@ -19,12 +19,13 @@ type Token struct {
 	next *Token
 	val  int
 	str  string
+	len  int
 }
 
 var CurrentToken *Token
 
-func Consume(op byte) bool {
-	if CurrentToken.kind != TOKEN_RESERVED || CurrentToken.str[0] != op {
+func Consume(op string) bool {
+	if CurrentToken.kind != TOKEN_RESERVED || CurrentToken.str[:CurrentToken.len] != op {
 		return false
 	}
 
@@ -33,9 +34,9 @@ func Consume(op byte) bool {
 	return true
 }
 
-func Expect(op byte) {
-	if CurrentToken.kind != TOKEN_RESERVED || CurrentToken.str[0] != op {
-		io.ErrorAt(CurrentToken.str, "It is not '%c'", op)
+func Expect(op string) {
+	if CurrentToken.kind != TOKEN_RESERVED || CurrentToken.str[:CurrentToken.len] != op {
+		io.ErrorAt(CurrentToken.str, "It is not '%s'", op)
 	}
 
 	CurrentToken = CurrentToken.next
@@ -57,10 +58,11 @@ func atEOF() bool {
 	return CurrentToken.kind == TOKEN_EOF
 }
 
-func newToken(cur *Token, kind TokenKind, str string) *Token {
+func newToken(cur *Token, kind TokenKind, str string, len int) *Token {
 	token := &Token{}
 	token.kind = kind
 	token.str = str
+	token.len = len
 	cur.next = token
 
 	return token
@@ -78,14 +80,21 @@ func Tokenize(s string) *Token {
 			continue
 		}
 
-		if strings.IndexByte("+-*/()", s[0]) != -1 {
-			cur = newToken(cur, TOKEN_RESERVED, s)
+		if strings.HasPrefix(s, "==") || strings.HasPrefix(s, "!=") ||
+			strings.HasPrefix(s, "<=") || strings.HasPrefix(s, ">=") {
+			cur = newToken(cur, TOKEN_RESERVED, s, 2)
+			s = s[2:]
+			continue
+		}
+
+		if strings.IndexByte("+-*/()<>", s[0]) != -1 {
+			cur = newToken(cur, TOKEN_RESERVED, s, 1)
 			s = s[1:]
 			continue
 		}
 
 		if s[0] >= '0' && s[0] <= '9' {
-			cur = newToken(cur, TOKEN_NUM, s)
+			cur = newToken(cur, TOKEN_NUM, s, 0)
 			cur.val, s = strToInt(s)
 			continue
 		}
@@ -93,7 +102,7 @@ func Tokenize(s string) *Token {
 		io.ErrorAt(s, "Can't tokenize")
 	}
 
-	newToken(cur, TOKEN_EOF, s)
+	newToken(cur, TOKEN_EOF, s, 0)
 
 	return head.next
 }

@@ -13,6 +13,10 @@ const (
 	NODE_SUB
 	NODE_MUL
 	NODE_DIV
+	NODE_EQ // ==
+	NODE_NE // !=
+	NODE_LT // <
+	NODE_LE // <=
 	NODE_NUM
 )
 
@@ -45,12 +49,48 @@ func Parse() *Node {
 }
 
 func expression() *Node {
+	return equality()
+}
+
+func equality() *Node {
+	node := relational()
+
+	for {
+		if tokenizer.Consume("==") {
+			node = newNode(NODE_EQ, node, relational())
+		} else if tokenizer.Consume("!=") {
+			node = newNode(NODE_NE, node, relational())
+		} else {
+			return node
+		}
+	}
+}
+
+func relational() *Node {
+	node := add()
+
+	for {
+		if tokenizer.Consume("<") {
+			node = newNode(NODE_LT, node, add())
+		} else if tokenizer.Consume("<=") {
+			node = newNode(NODE_LE, node, add())
+		} else if tokenizer.Consume(">") {
+			node = newNode(NODE_LT, add(), node)
+		} else if tokenizer.Consume(">=") {
+			node = newNode(NODE_LE, add(), node)
+		} else {
+			return node
+		}
+	}
+}
+
+func add() *Node {
 	node := mul()
 
 	for {
-		if tokenizer.Consume('+') {
+		if tokenizer.Consume("+") {
 			node = newNode(NODE_ADD, node, mul())
-		} else if tokenizer.Consume('-') {
+		} else if tokenizer.Consume("-") {
 			node = newNode(NODE_SUB, node, mul())
 		} else {
 			return node
@@ -62,9 +102,9 @@ func mul() *Node {
 	node := unary()
 
 	for {
-		if tokenizer.Consume('*') {
+		if tokenizer.Consume("*") {
 			node = newNode(NODE_MUL, node, unary())
-		} else if tokenizer.Consume('/') {
+		} else if tokenizer.Consume("/") {
 			node = newNode(NODE_DIV, node, unary())
 		} else {
 			return node
@@ -73,11 +113,11 @@ func mul() *Node {
 }
 
 func unary() *Node {
-	if tokenizer.Consume('+') {
+	if tokenizer.Consume("+") {
 		return primary()
 	}
 
-	if tokenizer.Consume('-') {
+	if tokenizer.Consume("-") {
 		return newNode(NODE_SUB, newNodeNum(0), primary())
 	}
 
@@ -85,9 +125,9 @@ func unary() *Node {
 }
 
 func primary() *Node {
-	if tokenizer.Consume('(') {
+	if tokenizer.Consume("(") {
 		node := expression()
-		tokenizer.Expect(')')
+		tokenizer.Expect(")")
 		return node
 	}
 
@@ -119,6 +159,26 @@ func Generate(node *Node) {
 	case NODE_DIV:
 		fmt.Printf("  cqo\n")
 		fmt.Printf("  idiv rdi\n")
+		break
+	case NODE_EQ:
+		fmt.Printf("  cmp rax, rdi\n")
+		fmt.Printf("  sete al\n")
+		fmt.Printf("  movzb rax, al\n")
+		break
+	case NODE_NE:
+		fmt.Printf("  cmp rax, rdi\n")
+		fmt.Printf("  setne al\n")
+		fmt.Printf("  movzb rax, al\n")
+		break
+	case NODE_LT:
+		fmt.Printf("  cmp rax, rdi\n")
+		fmt.Printf("  setl al\n")
+		fmt.Printf("  movzb rax, al\n")
+		break
+	case NODE_LE:
+		fmt.Printf("  cmp rax, rdi\n")
+		fmt.Printf("  setle al\n")
+		fmt.Printf("  movzb rax, al\n")
 		break
 	}
 
