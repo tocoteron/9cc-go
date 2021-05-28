@@ -20,13 +20,13 @@ type Token struct {
 	next *Token
 	val  int
 	Str  string
-	len  int
+	Len  int
 }
 
 var CurrentToken *Token
 
 func Consume(op string) bool {
-	if CurrentToken.kind != TOKEN_RESERVED || CurrentToken.Str[:CurrentToken.len] != op {
+	if CurrentToken.kind != TOKEN_RESERVED || CurrentToken.Str[:CurrentToken.Len] != op {
 		return false
 	}
 
@@ -48,7 +48,7 @@ func ConsumeIdent() *Token {
 }
 
 func Expect(op string) {
-	if CurrentToken.kind != TOKEN_RESERVED || CurrentToken.Str[:CurrentToken.len] != op {
+	if CurrentToken.kind != TOKEN_RESERVED || CurrentToken.Str[:CurrentToken.Len] != op {
 		io.ErrorAt(CurrentToken.Str, "It is not '%s'", op)
 	}
 
@@ -75,7 +75,7 @@ func newToken(cur *Token, kind TokenKind, str string, len int) *Token {
 	token := &Token{}
 	token.kind = kind
 	token.Str = str
-	token.len = len
+	token.Len = len
 	cur.next = token
 
 	return token
@@ -106,13 +106,19 @@ func Tokenize(s string) *Token {
 			continue
 		}
 
-		if s[0] >= 'a' && s[0] <= 'z' {
-			cur = newToken(cur, TOKEN_IDENT, s, 0)
-			s = s[1:]
+		if isAlphabet(s[0]) {
+			i := 0
+			for i < len(s) && isAlphabet(s[i]) {
+				i++
+			}
+
+			cur = newToken(cur, TOKEN_IDENT, s, i)
+			s = s[i:]
+
 			continue
 		}
 
-		if s[0] >= '0' && s[0] <= '9' {
+		if isDigit(s[0]) {
 			cur = newToken(cur, TOKEN_NUM, s, 0)
 			cur.val, s = strToInt(s)
 			continue
@@ -124,6 +130,14 @@ func Tokenize(s string) *Token {
 	newToken(cur, TOKEN_EOF, s, 0)
 
 	return head.next
+}
+
+func isAlphabet(c byte) bool {
+	return c >= 'a' && c <= 'z'
+}
+
+func isDigit(c byte) bool {
+	return c >= '0' && c <= '9'
 }
 
 func strToInt(s string) (int, string) {

@@ -31,6 +31,15 @@ type Node struct {
 	offset int
 }
 
+type LocalVariable struct {
+	next   *LocalVariable
+	name   string
+	len    int
+	offset int
+}
+
+var locals *LocalVariable
+
 func newNode(kind NodeKind, lhs *Node, rhs *Node) *Node {
 	node := &Node{}
 	node.kind = kind
@@ -173,8 +182,23 @@ func primary() *Node {
 
 	token := tokenizer.ConsumeIdent()
 	if token != nil {
-		node := newNodeLVar(int(token.Str[0]-'a'+1) * 8)
-		return node
+
+		lvar := findLocalVariable(token)
+
+		if lvar != nil {
+			return newNodeLVar(lvar.offset)
+		}
+
+		if locals == nil {
+			lvar = newLocalVariable(token.Str, token.Len, 8)
+		} else {
+			lvar = newLocalVariable(token.Str, token.Len, locals.offset+8)
+			lvar.next = locals
+		}
+
+		locals = lvar
+
+		return newNodeLVar(lvar.offset)
 	}
 
 	return newNodeNum(tokenizer.ExpectNumber())
@@ -262,4 +286,23 @@ func generateLeftVal(node *Node) {
 	fmt.Printf("  mov rax, rbp\n")
 	fmt.Printf("  sub rax, %d\n", node.offset)
 	fmt.Printf("  push rax\n")
+}
+
+func newLocalVariable(name string, len int, offset int) *LocalVariable {
+	lvar := &LocalVariable{}
+	lvar.name = name
+	lvar.len = len
+	lvar.offset = offset
+
+	return lvar
+}
+
+func findLocalVariable(token *tokenizer.Token) *LocalVariable {
+	for lvar := locals; lvar != nil; lvar = lvar.next {
+		if lvar.name[:lvar.len] == token.Str[:token.Len] {
+			return lvar
+		}
+	}
+
+	return nil
 }

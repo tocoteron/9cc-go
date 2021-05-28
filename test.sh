@@ -35,5 +35,6 @@ assert 2 'a = 2;'
 assert 3 'a = 2; b = 3;'
 assert 5 'a = 2; b = a + 3;'
 assert 6 'a = b = c = (-2 + 3) * 2; d = a * b + c;'
+assert 2 'abc = 2;'
 
 echo OK
