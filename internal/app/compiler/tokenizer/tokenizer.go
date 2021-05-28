@@ -1,6 +1,10 @@
 package tokenizer
 
-import "github.com/tocoteron/9cc-go/internal/app/compiler/io"
+import (
+	"strings"
+
+	"github.com/tocoteron/9cc-go/internal/app/compiler/io"
+)
 
 type TokenKind int
 
@@ -74,7 +78,7 @@ func Tokenize(s string) *Token {
 			continue
 		}
 
-		if s[0] == '+' || s[0] == '-' {
+		if strings.IndexByte("+-*/()", s[0]) != -1 {
 			cur = NewToken(cur, TOKEN_RESERVED, s)
 			s = s[1:]
 			continue
