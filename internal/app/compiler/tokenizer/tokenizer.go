@@ -53,11 +53,11 @@ func ExpectNumber() int {
 	return val
 }
 
-func AtEOF() bool {
+func atEOF() bool {
 	return CurrentToken.kind == TOKEN_EOF
 }
 
-func NewToken(cur *Token, kind TokenKind, str string) *Token {
+func newToken(cur *Token, kind TokenKind, str string) *Token {
 	token := &Token{}
 	token.kind = kind
 	token.str = str
@@ -79,13 +79,13 @@ func Tokenize(s string) *Token {
 		}
 
 		if strings.IndexByte("+-*/()", s[0]) != -1 {
-			cur = NewToken(cur, TOKEN_RESERVED, s)
+			cur = newToken(cur, TOKEN_RESERVED, s)
 			s = s[1:]
 			continue
 		}
 
 		if s[0] >= '0' && s[0] <= '9' {
-			cur = NewToken(cur, TOKEN_NUM, s)
+			cur = newToken(cur, TOKEN_NUM, s)
 			cur.val, s = strToInt(s)
 			continue
 		}
@@ -93,7 +93,7 @@ func Tokenize(s string) *Token {
 		io.ErrorAt(s, "Can't tokenize")
 	}
 
-	NewToken(cur, TOKEN_EOF, s)
+	newToken(cur, TOKEN_EOF, s)
 
 	return head.next
 }
